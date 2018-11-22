@@ -7,17 +7,14 @@
 #include <pwd.h>
 
 #include <gtk/gtk.h>
-#include <webkit2/webkit2.h>
 
 #include "HyWebDriver.h"
 #include "miso_types.h"
-#include "common.h"
-#include "spinlock.h"
-#include "timestamp.h"
+#include "miso_common.h"
+#include "miso_spinlock.h"
+#include "miso_timestamp.h"
 #include "miso_log.h"
 
-static void destroyWindowCb(GtkWidget* widget, GtkWidget* window);
-static gboolean closeWebViewCb(WebKitWebView* webView, GtkWidget* window);
 
 
 // HyWebDriver object
@@ -33,6 +30,7 @@ static void hy_check_create_dir(const char *dir) {
 	    mkdir(dir, 0755);
 	}
 }
+
 
 void hy_init(int argc, char* argv[]) {
 	char buf[1024], buf2[1024], buf3[1024];
@@ -79,44 +77,45 @@ void hy_init(int argc, char* argv[]) {
 }
 
 
+static void on_destroy_window(GtkWidget *widget,
+        					  gpointer   data)
+{
+    // close the driver
+    the_driver.close();
+    gtk_main_quit();
+}
+
+
+static gint on_timeout (gpointer data) {
+	return the_driver.checkOnce();
+}
+
+
 int main(int argc, char* argv[])
 {
 	// Initialize HyWebDriver settings.
 	hy_init(argc, argv);
 	
-    // Initialize GTK+
+	// Listen and wait connection
+	the_driver.listenWaitConnection();
+	
+	// Initialize GTK+
     gtk_init(&argc, &argv);
 
-    // Create an 800x600 window that will contain the browser instance
     GtkWidget *main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size(GTK_WINDOW(main_window), 800, 600);
+    gtk_window_set_default_size(GTK_WINDOW(main_window), 1366, 768);
 
-    // Create a browser instance
-    WebKitWebView *webView = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    g_signal_connect(main_window, "destroy", G_CALLBACK(on_destroy_window), NULL);
 
-    // Put the browser area into the main window
-    gtk_container_add(GTK_CONTAINER(main_window), GTK_WIDGET(webView));
-
-    // Set up callbacks so that if either the main window or the browser instance is
-    // closed, the program will exit
-    g_signal_connect(main_window, "destroy", G_CALLBACK(destroyWindowCb), NULL);
-    g_signal_connect(webView, "close", G_CALLBACK(closeWebViewCb), main_window);
-
-    // Load a web page into the browser instance
-    //webkit_web_view_load_uri(webView, "http://www.webkitgtk.org/");
-    //webkit_web_view_load_uri(webView, "http://www.deeplearning.net/");
-
-    // Make sure that when the browser area becomes visible, it will get mouse
-    // and keyboard events
-    gtk_widget_grab_focus(GTK_WIDGET(webView));
-
-    // Make sure the main window and all its contents are visible
-    gtk_widget_show_all(main_window);
-
+    the_driver.createWebView(main_window);
     
-    // Start the driver
-    the_driver.setWebView(webView);
-    the_driver.start();
+    // Set the timer
+    g_timeout_add(100, on_timeout, NULL);
+    
+    //gtk_widget_grab_focus(GTK_WIDGET(webView));
+    //gtk_widget_show_all(main_window);
+    
+    the_driver.setState(HY_WEBDRIVER_STATE_READY);
     
     // Run the main GTK+ event loop
     gtk_main();
@@ -125,18 +124,6 @@ int main(int argc, char* argv[])
 }
 
 
-static void destroyWindowCb(GtkWidget* widget, GtkWidget* window)
-{
-    // stop the driver
-    the_driver.stop();
-    
-    gtk_main_quit();
-}
 
-static gboolean closeWebViewCb(WebKitWebView* webView, GtkWidget* window)
-{
-    gtk_widget_destroy(window);
-    return TRUE;
-}
 
 

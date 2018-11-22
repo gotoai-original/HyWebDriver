@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "miso_types.h"
-#include "spinlock.h"
-#include "common.h"
+#include "miso_spinlock.h"
+#include "miso_common.h"
 
 
 #ifdef __cplusplus

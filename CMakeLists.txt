@@ -21,10 +21,11 @@ set(HyWebDriver_INCLUDE_DIRECTORIES
 set(HyWebDriver_SOURCES
     main.cpp
     HyWebDriver.cpp
-    miso/spinlock.c
-    miso/timestamp.c
-    miso/common.c
+    miso/miso_spinlock.c
+    miso/miso_timestamp.c
+    miso/miso_common.c
     miso/miso_log.c
+    miso/miso_thread.c
 )
 
 set(HyWebDriver_LIBRARIES

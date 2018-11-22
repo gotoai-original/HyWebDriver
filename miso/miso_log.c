@@ -12,8 +12,8 @@
 #include <stdarg.h>
 #include "miso_types.h"
 #include "miso_log.h"
-#include "timestamp.h"
-#include "spinlock.h"
+#include "miso_timestamp.h"
+#include "miso_spinlock.h"
 
 #ifdef __cplusplus
 extern "C" {
